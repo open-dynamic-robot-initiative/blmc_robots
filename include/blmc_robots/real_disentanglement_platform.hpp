@@ -37,7 +37,8 @@ public:
         BlmcJointModules<2>(motors,
                 0.02 * Eigen::Vector2d::Ones(),
                 9.0 * Eigen::Vector2d::Ones(),
-                Eigen::Vector2d::Zero()),
+                Eigen::Vector2d::Zero(),
+                Eigen::Vector2d::Ones() * 2),
         sliders_(sliders,
                 Eigen::Vector2d::Zero(),
                 Eigen::Vector2d::Ones()) {}
@@ -82,7 +83,8 @@ private:
         BlmcJointModules<3>(motors,
                 0.02 * Vector::Ones(),
                 Vector(9.79 * 9, 9, 9),
-                Vector::Zero())
+                Vector::Zero(),
+                Vector::Ones() * 2)
     {
 
 

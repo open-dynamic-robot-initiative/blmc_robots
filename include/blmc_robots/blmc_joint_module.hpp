@@ -88,7 +88,7 @@ public:
                     const double& gear_ratio,
                     const double& zero_angle,
                     const bool& reverse_polarity=false,
-                    const double& max_current=2.1);
+                    const double& max_current=10.0);
 
     /**
      * @brief Set the joint torque to be sent.
@@ -340,9 +340,10 @@ public:
           motors,
         const Vector& motor_constants,
         const Vector& gear_ratios,
-        const Vector& zero_angles)
+        const Vector& zero_angles,
+        const Vector& max_currents)
     {
-        set_motor_array(motors, motor_constants, gear_ratios, zero_angles);
+        set_motor_array(motors, motor_constants, gear_ratios, zero_angles, max_currents);
     }
     /**
      * @brief Construct a new BlmcJointModules object
@@ -363,14 +364,17 @@ public:
           motors,
         const Vector& motor_constants,
         const Vector& gear_ratios,
-        const Vector& zero_angles)
+        const Vector& zero_angles,
+        const Vector& max_currents)
     {
         for(size_t i = 0; i < COUNT; i++)
         {
             modules_[i] = std::make_shared<BlmcJointModule>(motors[i],
                                                             motor_constants[i],
                                                             gear_ratios[i],
-                                                            zero_angles[i]);
+                                                            zero_angles[i],
+                                                            false,
+                                                            max_currents[i]);
         }
     }
     /**
