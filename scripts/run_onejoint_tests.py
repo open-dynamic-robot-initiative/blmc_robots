@@ -10,8 +10,8 @@ import threading
 import ipdb
 import progressbar
 
-import py_finger
-import py_real_finger
+from robot_interfaces import one_joint
+import blmc_robots
 
 from blmc_robots.logger import Logger
 
@@ -25,7 +25,7 @@ def main():
     # Offset between encoder index and zero-position (in radian).
     # Set this such that the zero position is in the center between left and
     # right end stop.
-    home_offset = 2.241742
+    home_offset = 2.24
 
     # Limit of the range in which the joint can move (i.e. should be a little
     # bit before hitting the end stop).
@@ -44,17 +44,19 @@ def main():
 
 
     # Number of times the complete scenario is repeated
-    NUM_ITERATIONS = 20
+    #NUM_ITERATIONS = 20
+    NUM_ITERATIONS = 1
 
 
     # ========================================
 
 
-    finger_data = py_finger.OJData()
-    finger_backend = py_real_finger.create_one_joint_backend("can7",
-                                                             home_offset,
-                                                             finger_data)
-    finger = py_finger.OJFrontend(finger_data)
+    robot_data = one_joint.Data()
+    # launchpad: can7, custom board: can6
+    finger_backend = blmc_robots.create_one_joint_backend("can6",
+                                                          home_offset,
+                                                          robot_data)
+    robot = one_joint.Frontend(robot_data)
 
     n_joints = 1
 
@@ -63,24 +65,24 @@ def main():
         step = 0
 
         if logger:
-            t = finger.get_current_time_index()
+            t = robot.get_current_time_index()
             logger.set_time(t)
 
         while step < duration:
             step += 1
-            t = finger.append_desired_action(desired_torque)
+            t = robot.append_desired_action(desired_torque)
             if print_position:
                 print("\rPosition: %10.4f" %
-                      finger.get_observation(t).angle[0], end="")
+                      robot.get_observation(t).angle[0], end="")
 
             if logger:
-                logger.record(finger)
+                logger.record(robot)
 
     def go_to(goal_position, steps, hold, logger=None):
         desired_torque = np.zeros(n_joints)
 
-        t = finger.append_desired_action(desired_torque)
-        desired_step_position = copy.copy(finger.get_observation(t).angle)
+        t = robot.append_desired_action(desired_torque)
+        desired_step_position = copy.copy(robot.get_observation(t).angle)
 
         if logger:
             logger.set_time(t)
@@ -89,23 +91,23 @@ def main():
 
         for step in range(steps):
             desired_step_position += stepsize
-            t = finger.append_desired_action(desired_torque)
+            t = robot.append_desired_action(desired_torque)
             position_error = (desired_step_position -
-                              finger.get_observation(t).angle)
+                              robot.get_observation(t).angle)
             desired_torque = (kp * position_error -
-                              kd * finger.get_observation(t).velocity)
+                              kd * robot.get_observation(t).velocity)
 
             if logger:
-                logger.record(finger)
+                logger.record(robot)
 
         for step in range(hold):
-            t = finger.append_desired_action(desired_torque)
-            position_error = goal_position - finger.get_observation(t).angle
+            t = robot.append_desired_action(desired_torque)
+            position_error = goal_position - robot.get_observation(t).angle
             desired_torque = (kp * position_error -
-                              kd * finger.get_observation(t).velocity)
+                              kd * robot.get_observation(t).velocity)
 
             if logger:
-                logger.record(finger)
+                logger.record(robot)
 
     def go_to_zero(steps, hold, logger=None):
         go_to(np.zeros(n_joints), steps, hold, logger)
@@ -113,47 +115,47 @@ def main():
     def hit_endstop(desired_torque, hold=0, timeout=5000, logger=None):
         zero_velocity = 0.001
         step = 0
-        t = finger.append_desired_action(desired_torque)
+        t = robot.append_desired_action(desired_torque)
 
         if logger:
             logger.set_time(t)
 
-        while ((np.any(np.abs(finger.get_observation(t).velocity) > zero_velocity) or
+        while ((np.any(np.abs(robot.get_observation(t).velocity) > zero_velocity) or
                step < 100) and step < timeout):
-            t = finger.append_desired_action(desired_torque)
+            t = robot.append_desired_action(desired_torque)
 
             if logger:
-                logger.record(finger)
+                logger.record(robot)
 
             step += 1
 
         for step in range(hold):
-            t = finger.append_desired_action(desired_torque)
-            finger.get_observation(t)
+            t = robot.append_desired_action(desired_torque)
+            robot.get_observation(t)
 
             if logger:
-                logger.record(finger)
+                logger.record(robot)
 
     def increase_torque_until_movement(stepsize, max_torque, logger=None):
         """Slowly increase torque until the motor moves."""
         zero_velocity = 0.1
         desired_torque = np.zeros(n_joints)
         step = np.ones(n_joints) * stepsize
-        t = finger.append_desired_action(desired_torque)
+        t = robot.append_desired_action(desired_torque)
         if logger:
             logger.set_time(t)
 
         for i in range(1000):
-            t = finger.append_desired_action(desired_torque)
-            finger.get_observation(t)
+            t = robot.append_desired_action(desired_torque)
+            robot.get_observation(t)
             if logger:
-                logger.record(finger)
+                logger.record(robot)
 
-        while (np.all(np.abs(finger.get_observation(t).velocity) <
+        while (np.all(np.abs(robot.get_observation(t).velocity) <
                       zero_velocity) and desired_torque <= max_torque):
-            t = finger.append_desired_action(desired_torque)
+            t = robot.append_desired_action(desired_torque)
             if logger:
-                logger.record(finger)
+                logger.record(robot)
             desired_torque += step
 
         if desired_torque > max_torque:
@@ -165,17 +167,17 @@ def main():
 
     def test_if_moves(desired_torque, timeout, logger=None):
         for i in range(timeout):
-            t = finger.append_desired_action(desired_torque)
+            t = robot.append_desired_action(desired_torque)
             if logger:
-                logger.record(finger)
-            if np.all(finger.get_observation(t).angle > 0):
+                logger.record(robot)
+            if np.all(robot.get_observation(t).angle > 0):
                 return True
         return False
 
 
     def determine_start_torque(logger):
         desired_torque = np.zeros(n_joints)
-        t = finger.append_desired_action(desired_torque)
+        t = robot.append_desired_action(desired_torque)
         logger.set_time(t)
 
         max_torque = 0.4
@@ -201,8 +203,8 @@ def main():
 
         for i, sign in enumerate((+1, -1)):
             hit_endstop(sign * desired_torque)
-            t = finger.get_current_time_index()
-            angle[i] = finger.get_observation(t).angle
+            t = robot.get_current_time_index()
+            angle[i] = robot.get_observation(t).angle
             #expected = sign * position_limit
             #if np.any(np.abs(angle - expected) > tolerance):
             #    raise RuntimeError("Unexpected endstop position."
@@ -223,23 +225,23 @@ def main():
         direction = +1
         desired_torque = np.ones(n_joints) * torque
 
-        t = finger.append_desired_action(np.zeros(n_joints))
+        t = robot.append_desired_action(np.zeros(n_joints))
         logger.set_time(t)
 
         progress = progressbar.ProgressBar()
         for i in progress(range(num_repetitions)):
             step = 0
-            while np.all(finger.get_observation(t).angle < position_limit):
-                t = finger.append_desired_action(desired_torque)
-                logger.record(finger)
+            while np.all(robot.get_observation(t).angle < position_limit):
+                t = robot.append_desired_action(desired_torque)
+                logger.record(robot)
                 step += 1
                 if step > 1000:
                     raise RuntimeError("timeout hard_direction_change")
 
             step = 0
-            while np.all(finger.get_observation(t).angle > -position_limit):
-                t = finger.append_desired_action(-desired_torque)
-                logger.record(finger)
+            while np.all(robot.get_observation(t).angle > -position_limit):
+                t = robot.append_desired_action(-desired_torque)
+                logger.record(robot)
                 step += 1
                 if step > 1000:
                     raise RuntimeError("timeout -hard_direction_change")
@@ -285,8 +287,8 @@ def main():
 
 
 
-    finger_backend.calibrate()
-    print("calibration finished")
+    finger_backend.initialize()
+    print("initialization finished")
     go_to_zero(1000, 2000)
 
     #zero_torque_ctrl(99999999, print_position=True)
@@ -323,15 +325,16 @@ def main():
     for iteration in range (NUM_ITERATIONS):
         print("START TEST ITERATION %d" % iteration)
 
-        print("Determine torque to start movement.")
-        logger.start_new_recording(log_path("start_torque_%d" % iteration))
-        determine_start_torque(logger)
-        logger.dump()
+        #print("Determine torque to start movement.")
+        #logger.start_new_recording(log_path("start_torque_%d" % iteration))
+        #determine_start_torque(logger)
+        #logger.dump()
 
         print("Switch directions with high torque")
         #low_trq = 0.36
         low_trq = 0.2
-        currents = range(5, 19)
+        #currents = range(5, 19)
+        currents = range(5, 15)
         for current in currents:
             trq = current * (0.02 * 9)
             print("A = %d (trq = %f)" % (current, trq))
@@ -340,8 +343,8 @@ def main():
                                                 % (current, iteration)))
             hard_direction_change(2, trq, logger)
 
-            t = finger.get_current_time_index()
-            if np.any(np.abs(finger.get_observation(t).angle) >
+            t = robot.get_current_time_index()
+            if np.any(np.abs(robot.get_observation(t).angle) >
                       position_limit):
                 print("ERROR: Position limit exceeded!")
                 return
@@ -349,15 +352,18 @@ def main():
             hard_direction_change(10, low_trq, logger)
             logger.dump()
 
-            logger.start_new_recording(log_path("start_torque_after_switch_direction_%dA_%d"
-                                                % (current, iteration)))
-            determine_start_torque(logger)
-            logger.dump()
+            # Determine torque to start movement
+            #logger.start_new_recording(log_path("start_torque_after_switch_direction_%dA_%d"
+            #                                    % (current, iteration)))
+            #determine_start_torque(logger)
+            #logger.dump()
 
 
         print("position validation after switch directions")
         validate_position()
 
+
+        # skip the following tests
         continue
 
 

@@ -16,6 +16,9 @@
 
 namespace blmc_robots
 {
+
+constexpr double MAX_CURRENT_A = 15.0;
+
 /**
  * @brief Driver for a single joint.
  *
@@ -46,19 +49,21 @@ private:
                                       create_motors(motor_boards),
                                       {
                                           // MotorParameters
-                                          .max_current_A = 2.0,
+                                          //.max_current_A = 2.0,
+                                          .max_current_A = MAX_CURRENT_A,
                                           .torque_constant_NmpA = 0.02,
                                           .gear_ratio = 9.0,
                                       },
                                       {
                                           // CalibrationParameters
-                                          .torque_ratio = 0.6,
+                                          .torque_ratio = 0.05,
                                           .control_gain_kp = 3.0,
                                           .control_gain_kd = 0.03,
                                           .position_tolerance_rad = 0.05,
                                           .move_timeout = 2000,
                                       },
-                                      make_vector(0.08),
+                                      //make_vector(0.08),  // safety kd
+                                      make_vector(0.00),  // safety kd
                                       true)
     {
         home_offset_rad_ << home_offset_rad;
