@@ -56,7 +56,7 @@ private:
                                       },
                                       {
                                           // CalibrationParameters
-                                          .torque_ratio = 0.05,
+                                          .torque_ratio = 0.3 * 2.0/MAX_CURRENT_A,
                                           .control_gain_kp = 3.0,
                                           .control_gain_kd = 0.03,
                                           .position_tolerance_rad = 0.05,
