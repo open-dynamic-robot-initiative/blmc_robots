@@ -7,6 +7,9 @@
 
 #pragma once
 
+#include <chrono>
+#include <thread>
+
 #include <array>
 #include <cmath>
 #include <iterator>
@@ -15,6 +18,7 @@
 #include <yaml-cpp/yaml.h>
 #include <Eigen/Eigen>
 
+#include <real_time_tools/timer.hpp>
 #include <yaml_cpp_catkin/yaml_eigen.h>
 #include <mpi_cpp_tools/math.hpp>
 #include <robot_interfaces/n_joint_robot_types.hpp>
@@ -375,6 +379,14 @@ public:
         return joint_modules_.get_measured_index_angles();
     }
 
+    virtual uint8_t get_error_code(size_t board_index)
+    {
+        return motor_boards_[board_index]
+            ->get_status()
+            ->newest_element()
+            .error_code;
+    }
+
 public:
     Observation get_latest_observation() override
     {
@@ -536,18 +548,23 @@ protected:
             // Move until velocity drops to almost zero (= joints hit the end
             // stops) but at least for MIN_STEPS_MOVE_TO_END_STOP time steps.
             // TODO: add timeout to this loop?
+            // FIXME use a static array instead of std::vector?
             std::vector<Vector> running_velocities(SIZE_VELOCITY_WINDOW);
             Vector summed_velocities = Vector::Zero();
             uint32_t step_count = 0;
+
+            real_time_tools::Timer timer;
             while (step_count < MIN_STEPS_MOVE_TO_END_STOP ||
                    (summed_velocities.maxCoeff() / SIZE_VELOCITY_WINDOW >
                     STOP_VELOCITY))
             {
+                timer.tac_tic();
                 Vector torques = -1 * torque_ratio * get_max_torques();
                 apply_action_uninitialized(torques);
                 Vector abs_velocities =
                     get_latest_observation().velocity.cwiseAbs();
 
+                //timer.tic();
                 uint32_t running_index = step_count % SIZE_VELOCITY_WINDOW;
                 if (step_count >= SIZE_VELOCITY_WINDOW)
                 {
@@ -557,6 +574,7 @@ protected:
                 summed_velocities += abs_velocities;
                 step_count++;
 
+                //timer.tac();
 #ifdef VERBOSE
                 Eigen::IOFormat commainitfmt(
                     4, Eigen::DontAlignCols, " ", " ", "", "", "", "");
@@ -567,6 +585,9 @@ protected:
 #endif
             }
             rt_printf("Reached end stop.\n");
+            pause_motors();
+            timer.print_statistics();
+            timer.dump_measurements("/tmp/timer_data.txt");
         }
 
         // Home on encoder index

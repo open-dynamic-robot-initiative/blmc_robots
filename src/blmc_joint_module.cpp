@@ -12,6 +12,7 @@
 #include "real_time_tools/iostream.hpp"
 #include "blmc_robots/blmc_joint_module.hpp"
 
+//#define VERBOSE
 
 namespace blmc_robots{
 
