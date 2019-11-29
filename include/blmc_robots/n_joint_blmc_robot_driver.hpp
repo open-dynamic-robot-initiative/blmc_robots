@@ -350,7 +350,7 @@ public:
         for (size_t i = 0; i < motor_boards.size(); i++)
         {
             motor_boards[i] = std::make_shared<blmc_drivers::CanBusMotorBoard>(
-                can_buses[i], 1000, 50);
+                can_buses[i], 1000, 20);
             /// \TODO: reduce the timeout further!!
         }
 
