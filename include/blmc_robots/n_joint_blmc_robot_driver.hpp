@@ -18,9 +18,10 @@
 #include <yaml-cpp/yaml.h>
 #include <Eigen/Eigen>
 
-#include <real_time_tools/timer.hpp>
 #include <yaml_cpp_catkin/yaml_eigen.h>
 #include <mpi_cpp_tools/math.hpp>
+#include <real_time_tools/thread.hpp>
+#include <real_time_tools/timer.hpp>
 #include <robot_interfaces/n_joint_robot_types.hpp>
 #include <robot_interfaces/robot_driver.hpp>
 
@@ -647,6 +648,46 @@ protected:
      */
     void initialize() override
     {
+        // Initialization is moving the robot and thus needs to be executed in
+        // a real-time thread.  This method only starts the thread and waits
+        // for it to finish.  Actual implementation of initialization is in
+        // `_initialize()`.
+
+        real_time_tools::RealTimeThread realtime_thread;
+        realtime_thread.create_realtime_thread(
+            [](void *instance_pointer) {
+                // instance_pointer = this, cast to correct type and call the
+                // _initialize() method.
+                ((NJointBlmcRobotDriver<N_JOINTS, N_MOTOR_BOARDS>
+                      *)(instance_pointer))
+                    ->_initialize();
+                return (void *)nullptr;
+            },
+            this);
+        realtime_thread.join();
+    }
+
+protected:
+    BlmcJointModules<N_JOINTS> joint_modules_;
+    MotorBoards motor_boards_;
+
+    // TODO: this should probably go away
+    double max_torque_Nm_;
+
+    /**
+     * \brief User-defined configuration of the driver
+     *
+     * Contains all configuration values that can be modified by the user (via
+     * the configuration file).
+     */
+    Config config_;
+
+    bool is_initialized_ = false;
+
+    //! \brief Actual initialization that is called in a real-time thread in
+    //!        initialize().
+    void _initialize()
+    {
         joint_modules_.set_position_control_gains(
             config_.position_control_gains.kp,
             config_.position_control_gains.kd);
@@ -668,23 +709,6 @@ protected:
 
         pause_motors();
     }
-
-protected:
-    BlmcJointModules<N_JOINTS> joint_modules_;
-    MotorBoards motor_boards_;
-
-    // TODO: this should probably go away
-    double max_torque_Nm_;
-
-    /**
-     * \brief User-defined configuration of the driver
-     *
-     * Contains all configuration values that can be modified by the user (via
-     * the configuration file).
-     */
-    Config config_;
-
-    bool is_initialized_ = false;
 
 public:
     Vector get_max_torques() const
