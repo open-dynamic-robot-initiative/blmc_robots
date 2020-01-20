@@ -64,3 +64,4 @@ create_demo(teststand_calibration teststand "${robot_properties_teststand_SOURCE
 
 create_demo(finger_position_control)
 create_demo(finger_torque_control)
+create_demo(foobar)
