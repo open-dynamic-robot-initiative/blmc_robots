@@ -252,7 +252,7 @@ struct NJointBlmcRobotDriver<N_JOINTS, N_MOTOR_BOARDS>::Config
         double move_timeout = 0.0;
     } calibration;
 
-    //! \brief D-gain to dampen velocity.  Set to zero to disable damping.
+    //! @brief D-gain to dampen velocity.  Set to zero to disable damping.
     // set some rather high damping by default
     Vector safety_kd = Vector::Constant(0.1);
 
@@ -263,12 +263,14 @@ struct NJointBlmcRobotDriver<N_JOINTS, N_MOTOR_BOARDS>::Config
         Vector kd = Vector::Zero();
     } position_control_gains;
 
-    //! \brief Offset between home position and zero.
+    //! @brief Offset between home position and zero.
     Vector home_offset_rad = Vector::Zero();
 
     /**
      * @brief Initial position to which the robot moves after
      *        initialization.
+     *
+     * If any value is set to NaN, the robot does not move after initialization.
      */
     Vector initial_position_rad = Vector::Zero();
 

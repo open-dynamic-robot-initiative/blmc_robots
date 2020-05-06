@@ -108,8 +108,15 @@ typename NJBRD::Config NJBRD::Config::load_config(
     }
 
     set_config_value(user_config, "home_offset_rad", &config.home_offset_rad);
-    set_config_value(
-        user_config, "initial_position_rad", &config.initial_position_rad);
+    if (user_config["initial_position_rad"].IsNull())
+    {
+        config.initial_position_rad = Vector::Constant(std::nan(""));
+    }
+    else
+    {
+        set_config_value(
+            user_config, "initial_position_rad", &config.initial_position_rad);
+    }
 
     return config;
 }
@@ -322,7 +329,7 @@ void NJBRD::_initialize()
     is_initialized_ = homing(config_.calibration.endstop_search_torques_Nm,
                              config_.home_offset_rad);
 
-    if (is_initialized_)
+    if (is_initialized_ && !config_.initial_position_rad.hasNaN())
     {
         bool reached_goal =
             move_to_position(config_.initial_position_rad,
@@ -330,7 +337,7 @@ void NJBRD::_initialize()
                              config_.calibration.move_timeout);
         if (!reached_goal)
         {
-            rt_printf("Failed to reach goal, timeout exceeded.\n");
+            rt_printf("Failed to reach initial position, timeout exceeded.\n");
         }
     }
 
