@@ -113,14 +113,14 @@ public:
                 index_position != last_index_position)
             {
                 counter++;
-                double diff = index_position - last_index_position;
-                if (std::abs(diff) > 1.5 * one_motor_rotation_distance)
-                {
-                    std::cout << "FAILURE: Did not observe encoder index for "
-                                 "1.5 motor revolutions."
-                              << std::endl;
-                    exit(2);
-                }
+                //double diff = index_position - last_index_position;
+                //if (std::abs(diff) > 1.5 * one_motor_rotation_distance)
+                //{
+                //    std::cout << "FAILURE: Did not observe encoder index for "
+                //                 "1.5 motor revolutions."
+                //              << std::endl;
+                //    exit(2);
+                //}
 
                 last_index_position = index_position;
             }
