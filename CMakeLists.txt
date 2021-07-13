@@ -19,6 +19,8 @@ if(NOT CMAKE_CXX_STANDARD)
   set(CMAKE_CXX_STANDARD 17)
 endif()
 
+OPTION(BUILD_ROS_DYNAMIC_GRAPH "Build with ROS and DynamicGraph" ON)
+
 #
 # Dependencies
 #
@@ -39,6 +41,7 @@ find_package(Eigen3 REQUIRED)
 find_package(PythonModules COMPONENTS robot_properties_solo)
 
 find_package(dynamic_graph_manager QUIET)
+
 
 # export de dependencies
 ament_export_dependencies(

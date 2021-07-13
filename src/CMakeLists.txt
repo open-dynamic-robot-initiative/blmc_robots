@@ -62,7 +62,7 @@ build_programs(solo12_hardware_calibration solo12)
 #
 # Optionally build the DynamiGraphManager main programs.
 #
-if(${dynamic_graph_manager_FOUND})
+if(${dynamic_graph_manager_FOUND} AND BUILD_ROS_DYNAMIC_GRAPH)
   message(STATUS "Build the dynamic_graph_manager main programs.")
   macro(build_dgm_programs robot_name)
     add_executable(dg_main_${robot_name}
@@ -90,7 +90,7 @@ if(${dynamic_graph_manager_FOUND})
   build_dgm_programs(solo8)
   build_dgm_programs(solo8ti)
   build_dgm_programs(solo12)
-endif(${dynamic_graph_manager_FOUND})
+endif(${dynamic_graph_manager_FOUND} AND BUILD_ROS_DYNAMIC_GRAPH)
 
 #
 # Install and Export the libraries.
